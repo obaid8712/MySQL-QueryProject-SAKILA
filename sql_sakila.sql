@@ -60,21 +60,21 @@ INNER JOIN address ON staff.address_id=address.address_id;
 -- SELECT * FROM staff;
 -- WHERE payment.payment_date like '2005-08%'
 -- WHERE payment.payment_date BETWEEN '1/8/2005' AND '31/8/2005'
-SELECT staff.first_name,staff.last_name,SUM(payment.amount)
+SELECT staff.first_name,staff.last_name,SUM(payment.amount) AS Rung_up
 FROM payment
 LEFT JOIN staff ON payment.staff_id=staff.staff_id WHERE payment.payment_date BETWEEN '2005-08-01' AND '2005-09-01'
 GROUP BY payment.staff_id;
 -- 6c. List each film and the number of actors who are listed for that film
 -- SELECT * FROM film;
 -- SELECT * FROM film_actor WHERE film_id=25;
-SELECT film.title,COUNT(film_actor.actor_id)
+SELECT film.title,COUNT(film_actor.actor_id) AS Number_of_Actors
 FROM film
 INNER JOIN film_actor ON film.film_id=film_actor.film_id
 GROUP BY film.title;
 -- 6d. How many copies of the film Hunchback Impossible exist in the inventory system
 -- SELECT * FROM film;
 -- SELECT * FROM inventory;
-SELECT film.title,COUNT(inventory.film_id)
+SELECT film.title,COUNT(inventory.film_id) AS Number_Copies
 FROM film
 INNER JOIN inventory ON film.film_id=inventory.film_id
 WHERE film.title='Hunchback Impossible';
@@ -85,7 +85,7 @@ WHERE film.title='Hunchback Impossible';
 -- List the customers alphabetically by last name:
 -- SELECT * FROM payment;
 -- SELECT * FROM customer;
-SELECT customer.first_name,customer.last_name,SUM(payment.amount)
+SELECT customer.first_name,customer.last_name,SUM(payment.amount) AS Total_Paid
 FROM payment
 INNER JOIN customer ON payment.customer_id=customer.customer_id
 GROUP BY payment.customer_id
@@ -158,25 +158,20 @@ GROUP BY film_text.title
 ORDER BY COUNT(film_text.title) DESC;
 
 -- 7f. Write a query to display how much business, in dollars, each store brought in
--- SELECT * FROM store;
--- SELECT * FROM address; 
--- SELECT * FROM staff;
--- SELECT * FROM payment;
 
-SELECT address.address,SUM(payment.amount)
-FROM address
-INNER JOIN store ON address.address_id=store.address_id
-INNER JOIN staff ON store.store_id=staff.store_id
-INNER JOIN payment ON staff.staff_id=payment.staff_id
-GROUP BY address.address;
+SELECT CONCAT(city.city,",",country.country) as store,SUM(payment.amount) as Total_sales
+FROM payment
+INNER JOIN rental ON payment.rental_id=rental.rental_id
+INNER JOIN inventory ON rental.inventory_id=inventory.inventory_id
+INNER JOIN store ON inventory.store_id=store.store_id
+INNER JOIN address ON store.address_id=address.address_id
+INNER JOIN city ON address.city_id=city.city_id
+INNER JOIN country ON city.country_id=country.country_id
+GROUP BY store;
 
 -- 7g. Write a query to display for each store its store ID, city, and country.
--- SELECT * FROM store;
--- SELECT * FROM address;
--- SELECT * FROM city;
--- SELECT * FROM country;
 
-SELECT store.store_id,address.address,city.city,country.country
+SELECT store.store_id,city.city,country.country
 FROM store
 INNER JOIN address ON store.address_id=address.address_id
 INNER JOIN city ON address.city_id=city.city_id
@@ -184,21 +179,33 @@ INNER JOIN country ON city.country_id=country.country_id;
 
 -- 7h. List the top five genres in gross revenue in descending order. 
 -- (Hint: you may need to use the following tables: category, film_category, inventory, payment, and rental.)
-SELECT * FROM category;
-SELECT * FROM film_category;
-SELECT * FROM inventory;
-SELECT * FROM payment;
-SELECT * FROM rental;
--- TOP five category
-SELECT category.name,SUM(payment.amount)
-FROM category
-RIGHT JOIN film_category ON category.category_id=film_category.category_id
-RIGHT JOIN inventory ON film_category.film_id=inventory.film_id
-RIGHT JOIN rental ON inventory.inventory_id=rental.inventory_id
-RIGHT JOIN payment ON rental.rental_id=payment.rental_id
+
+SELECT category.name,SUM(payment.amount) AS Total_sales
+FROM payment
+INNER JOIN rental ON payment.rental_id=rental.rental_id
+INNER JOIN inventory ON rental.inventory_id=inventory.inventory_id
+INNER JOIN film_category ON inventory.film_id=film_category.film_id
+INNER JOIN category ON film_category.category_id=category.category_id
 GROUP BY category.name
 ORDER BY SUM(payment.amount) DESC 
 LIMIT 5;
+
+-- 8a Use the solution from the problem 7h above to create a view.
+CREATE VIEW top_five_genres AS
+SELECT category.name,SUM(payment.amount) AS Total_sales
+FROM payment
+INNER JOIN rental ON payment.rental_id=rental.rental_id
+INNER JOIN inventory ON rental.inventory_id=inventory.inventory_id
+INNER JOIN film_category ON inventory.film_id=film_category.film_id
+INNER JOIN category ON film_category.category_id=category.category_id
+GROUP BY category.name
+ORDER BY SUM(payment.amount) DESC 
+LIMIT 5;
+-- 8b. How would you display the view that you created in 8a?
+SELECT * FROM top_five_genres;
+-- 8c. You find that you no longer need the view top_five_genres. Write a query to delete it
+DROP VIEW top_five_genres;
+
 
 
 
